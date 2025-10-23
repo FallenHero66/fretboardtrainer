@@ -1,0 +1,21 @@
+<RoundedButton>:
+    background_normal: ''
+    background_down: ''
+    background_color: 0, 0, 0, 0  # fully transparent
+    bg_color: (0.2, 0.6, 0.9, 1)  # default blue-ish
+    canvas.before:
+        Color:
+            rgba: self.bg_color if self.state == 'normal' else [c * 0.8 for c in self.bg_color[:3]] + [1]
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [12]
+
+<TrainerScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            source: 'blueprint_pattern.png'
+            pos: self.pos
+            size: self.size
