@@ -49,7 +49,10 @@ def load_config():
         return {
             "string_count": 6,
             "notes_set": "all",  # "all" or "7"
+            "show_string": True 
         }
+    if "show_string" not in config:
+        config["show_string"] = True
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
@@ -59,6 +62,8 @@ def save_config(config):
 class TrainerScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        self.config = load_config()
         # Add background color/pattern
         self.texture = CoreImage("blueprint_pattern.png").texture
         self.texture.wrap = 'repeat'
@@ -91,6 +96,24 @@ class TrainerScreen(Screen):
             markup=True
         )
         self.labelbox.add_widget(self.display)
+
+        # Load saved preference
+        self.show_string = self.config.get("show_string", True)
+
+        # Create toggle button
+        self.toggle_string_btn = ToggleButton(
+            text="Hide String" if self.show_string else "Show String",
+            state="down" if self.show_string else "normal",
+            size_hint=(None, None),
+            size=(150, 50),
+            pos_hint={'center_x': 0.5, 'center_y': 0.3}
+        )
+        self.toggle_string_btn.bind(on_press=self.toggle_string)
+        self.layout.add_widget(self.toggle_string_btn)
+
+        # State variable
+        self.show_string = True
+
         self.layout.add_widget(self.labelbox)
 
         button_size = dp(90)
@@ -179,6 +202,17 @@ class TrainerScreen(Screen):
         else:
             self.notes = NOTES_12
 
+    def toggle_string(self, instance):
+        self.show_string = instance.state == "down"
+        instance.text = "Hide String" if self.show_string else "Show String"
+
+        # Update config and save
+        self.config["show_string"] = self.show_string
+        save_config(self.config)
+
+        # Update the displayed label
+        self.update_display()
+
     def start_practice(self, instance):
         # Reset session data
         self.start_time = None
@@ -260,6 +294,8 @@ class TrainerScreen(Screen):
         self.update_display(timer_only=True)
 
     def update_display(self, timer_only=False):
+        string_lines = f"[size={int(sp(Window.width * 0.035))}]String[/size]\n[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n" if self.show_string else ""
+
         time_str = self.format_time(self.elapsed_time)
         if timer_only:
             text = self.labelbox.display.text.split('\n', 1)[1] if '\n' in self.labelbox.display.text else ""
@@ -268,8 +304,8 @@ class TrainerScreen(Screen):
             #self.labelbox.display.text = f"⏱ {time_str}\nString: {self.current_string}\nNote: {self.current_note}"
             self.labelbox.display.text = (
                 f"{time_str}"
-                f"\n[size={int(sp(Window.width * 0.035))}]String[/size]\n"
-                f"[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n"
+                f"\n"
+                f"{string_lines}"
                 f"[size={int(sp(Window.width * 0.07))}][b]{self.current_note}[/b][/size]\n"
                 f"[size={int(sp(Window.width * 0.035))}]Note[/size]"
             )
@@ -370,7 +406,7 @@ class SettingsScreen(Screen):
         self.layout.add_widget(lbl1)
 
         # Wrap strings toggles in centered AnchorLayout
-        strings_layout = BoxLayout(size_hint_y=None, height=40, spacing=10, size_hint_x=None, width=450)
+        strings_layout = BoxLayout(size_hint_y=None, height=40, spacing=10, size_hint_x=None, width=210)
         strings_layout.add_widget(self.strings_6_btn)
         strings_layout.add_widget(self.strings_7_btn)
         strings_anchor = AnchorLayout(size_hint_y=None, height=40)
