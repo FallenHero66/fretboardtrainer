@@ -62,7 +62,7 @@ def save_config(config):
 class TrainerScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+        self.practicing = False
         self.config = load_config()
         # Add background color/pattern
         self.texture = CoreImage("blueprint_pattern.png").texture
@@ -88,7 +88,7 @@ class TrainerScreen(Screen):
         # … your existing layout code …
         self.display = Label(
             text="",
-            font_size=sp(Window.width*0.04),
+            font_size=32,
             halign='center',
             valign='middle',
             color=(0,0,0,1),
@@ -105,7 +105,7 @@ class TrainerScreen(Screen):
             text="Hide String" if self.show_string else "Show String",
             state="down" if self.show_string else "normal",
             size_hint=(None, None),
-            size=(150, 50),
+            size=(dp(150), dp(50)),
             pos_hint={'center_x': 0.5, 'center_y': 0.3}
         )
         self.toggle_string_btn.bind(on_press=self.toggle_string)
@@ -215,6 +215,7 @@ class TrainerScreen(Screen):
 
     def start_practice(self, instance):
         # Reset session data
+        self.practicing = True
         self.start_time = None
         self.note_count = 0
         self.elapsed_time = 0
@@ -273,10 +274,10 @@ class TrainerScreen(Screen):
         main_screen = self.manager.get_screen('trainer')
 
         main_screen.labelbox.display.text = (
-            f"[size={int(sp(Window.width * 0.07))}]Practice finished![/size]\n"
-            f"[size={int(sp(Window.width * 0.035))}]Total time: [b]{self.format_time(total_time)}[/b][/size]\n"
-            f"[size={int(sp(Window.width * 0.035))}]Notes practiced: [b]{self.note_count}[/b][/size]\n"
-            f"[size={int(sp(Window.width * 0.035))}]Average time/note: [b]{avg_time:.2f} sec[/b][/size]"
+            f"[size={int(sp(Window.width * 0.045))}]Practice finished![/size]\n"
+            f"[size={int(sp(Window.width * 0.025))}]Total time: [b]{self.format_time(total_time)}[/b][/size]\n"
+            f"[size={int(sp(Window.width * 0.025))}]Notes practiced: [b]{self.note_count}[/b][/size]\n"
+            f"[size={int(sp(Window.width * 0.025))}]Average time/note: [b]{avg_time:.2f} sec[/b][/size]"
         )
         self.next_button.opacity = 0
         self.next_button.disabled = True
@@ -286,6 +287,7 @@ class TrainerScreen(Screen):
         self.start_button.disabled = False
         self.settings_button.opacity = 1
         self.settings_button.disabled = False
+        self.practicing = False
 
     def update_timer(self, dt):
         if self.start_time is None:
@@ -294,6 +296,8 @@ class TrainerScreen(Screen):
         self.update_display(timer_only=True)
 
     def update_display(self, timer_only=False):
+        if not self.practicing:
+            return
         string_lines = f"[size={int(sp(Window.width * 0.035))}]String[/size]\n[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n" if self.show_string else ""
 
         time_str = self.format_time(self.elapsed_time)
@@ -343,7 +347,7 @@ class LabelBox(BoxLayout):
         self.display = Label(
             text="Press Start to begin",
             color=(0, 0, 0, 1),
-            font_size=sp(22),
+            font_size=32,
             halign='center',
             valign='middle',
             size_hint_y=None,
@@ -466,5 +470,5 @@ class GuitarTrainerApp(App):
 
 
 if __name__ == '__main__':
-    Window.size = (400, 800)
+    #Window.size = (400, 800)
     GuitarTrainerApp().run()
