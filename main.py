@@ -49,10 +49,10 @@ def load_config():
         return {
             "string_count": 6,
             "notes_set": "all",  # "all" or "7"
-            "show_string": True 
+            "show_string": False 
         }
     if "show_string" not in config:
-        config["show_string"] = True
+        config["show_string"] = False
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
@@ -98,7 +98,7 @@ class TrainerScreen(Screen):
         self.labelbox.add_widget(self.display)
 
         # Load saved preference
-        self.show_string = self.config.get("show_string", True)
+        self.show_string = self.config.get("show_string", False)
 
         # Create toggle button
         self.toggle_string_btn = ToggleButton(
@@ -110,9 +110,6 @@ class TrainerScreen(Screen):
         )
         self.toggle_string_btn.bind(on_press=self.toggle_string)
         self.layout.add_widget(self.toggle_string_btn)
-
-        # State variable
-        self.show_string = True
 
         self.layout.add_widget(self.labelbox)
 
@@ -299,7 +296,7 @@ class TrainerScreen(Screen):
         if not self.practicing:
             return
         string_lines = f"[size={int(sp(Window.width * 0.035))}]String[/size]\n[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n" if self.show_string else ""
-
+        
         time_str = self.format_time(self.elapsed_time)
         if timer_only:
             text = self.labelbox.display.text.split('\n', 1)[1] if '\n' in self.labelbox.display.text else ""
