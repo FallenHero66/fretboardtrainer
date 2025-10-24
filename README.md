@@ -5,7 +5,7 @@ Fretboard Trainer helps you learn the layout of the guitar fretboard.
 For beginners, decide on a string you want to practice on. You can toggle natural (7) tones or all (12) tones in the settings. <br>
 Press the "Start Practice" button and play the displayed note in every position you can on the fretboard (between 1 and 2 positions, depending on whether you have 24 tabs or less)
 
-Check out Brandon D'Eon's video on the technique: https://www.youtube.com/watch?v=7PMZWb6ZNJc
+This App was inspired Brandon D'Eon's technique on learning the fretboard: https://www.youtube.com/watch?v=7PMZWb6ZNJc
 
 ## Features
 You can toggle between 6 and 7 strings, and between natural (7) tones or all (12) tones in the settings.<br>
