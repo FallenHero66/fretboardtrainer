@@ -35,6 +35,29 @@ CONFIG_FILE = "config.json"
 # Notes sets
 NOTES_12 = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTES_7 = ["C", "D", "E", "F", "G", "A", "H"]
+NOTES_POSITIONS=fretboard = {
+    "E": {  # Low E string
+        "E": 0, "F": 1, "F#": 2, "G": 3, "G#": 4, "A": 5, "A#": 6,
+        "B": 7, "C": 8, "C#": 9, "D": 10, "D#": 11, "E (octave)": 12
+    },
+    "A": {  # A string
+        "A": 0, "A#": 1, "B": 2, "C": 3, "C#": 4, "D": 5, "D#": 6,
+        "E": 7, "F": 8, "F#": 9, "G": 10, "G#": 11, "A (octave)": 12
+    },
+    "D": {  # D string
+        "D": 0, "D#": 1, "E": 2, "F": 3, "F#": 4, "G": 5, "G#": 6,
+        "A": 7, "A#": 8, "B": 9, "C": 10, "C#": 11, "D (octave)": 12
+    },
+    "G": {  # G string
+        "G": 0, "G#": 1, "A": 2, "A#": 3, "B": 4, "C": 5, "C#": 6,
+        "D": 7, "D#": 8, "E": 9, "F": 10, "F#": 11, "G (octave)": 12
+    },
+    "B": {  # B string
+        "B": 0, "C": 1, "C#": 2, "D": 3, "D#": 4, "E": 5, "F": 6,
+        "F#": 7, "G": 8, "G#": 9, "A": 10, "A#": 11, "B (octave)": 12
+    },
+    # high E string identical to low E string
+}
 
 # Strings for 6 and 7 string guitars
 STRINGS_6 = ["6 - low E", "5 - A", "4 - D", "3 - G", "2 - B", "1 - high E"]
@@ -198,6 +221,7 @@ class TrainerScreen(Screen):
             self.notes = NOTES_7
         else:
             self.notes = NOTES_12
+        self.remaining_notes = []
 
     def toggle_string(self, instance):
         self.show_string = instance.state == "down"
@@ -242,8 +266,12 @@ class TrainerScreen(Screen):
         self.timer_event = Clock.schedule_interval(self.update_timer, 1)
 
     def pick_new_note(self):
+        if len(self.remaining_notes) == 0:
+            self.remaining_notes = self.notes[:]
+        print(self.remaining_notes)
         self.current_string = random.choice(self.strings)
-        self.current_note = random.choice(self.notes)
+        self.current_note = random.choice(self.remaining_notes)
+        self.remaining_notes.remove(self.current_note)
         self.note_count += 1
         self.update_display()
 
