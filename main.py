@@ -118,18 +118,6 @@ class TrainerScreen(Screen):
 
         self.labelbox = LabelBox()
 
-        # … your existing layout code …
-        #self.display = Label(
-        #    text="",
-        #    font_size=32,
-        #    halign='center',
-        #    valign='middle',
-        #    color=(0,0,0,1),
-        #    pos_hint={'center_x': 0.5, 'y': 0.15},
-        #    markup=True
-        #)
-        #self.labelbox.add_widget(self.display)
-
         # Load saved preference
         self.show_string = self.config.get("show_string", False)
 
@@ -153,14 +141,9 @@ class TrainerScreen(Screen):
 
         button_size = dp(90)
 
-        # remove later
         # --- Practice mode selection ---
         self.mode_labelbox = LabelBox()
         self.mode_labelbox.display.text ="Practice mode:"
-
-        #mode_layout = BoxLayout(size_hint_y=None, height=50, spacing=10)
-        #self.random_btn = ToggleButton(text="Random", group="mode")
-        #self.seq_btn = ToggleButton(text="Sequential", group="mode")
 
         self.mode_box = BoxLayout(
             size_hint=(1, None),
@@ -336,14 +319,6 @@ class TrainerScreen(Screen):
         self.seq_index += 1
 
     def pick_new_note(self):
-        #if len(self.remaining_notes) == 0:
-        #    self.remaining_notes = self.notes[:]
-        #print(self.remaining_notes)
-        #self.current_string = random.choice(self.strings)
-        #self.current_note = random.choice(self.remaining_notes)
-        #self.remaining_notes.remove(self.current_note)
-        #self.note_count += 1
-        #self.update_display()
         if self.config["practice_mode"] == "random":
             self.random_mode()
         elif self.config["practice_mode"] == "sequential":
@@ -363,15 +338,6 @@ class TrainerScreen(Screen):
 
         total_time = time.time() - self.start_time if self.start_time else 0
         avg_time = total_time / self.note_count if self.note_count else 0
-
-        #self.labelbox.display.text = (
-        #    f"✅ Practice finished!\n"
-        #    f"⏱ Total time: {self.format_time(total_time)}\n"
-        #    f"🎯 Notes practiced: {self.note_count}\n"
-        #    f"⚡ Average time/note: {avg_time:.2f} sec"
-        #)
-
-        
 
         self.manager.current = 'trainer'  # or your main screen name
         main_screen = self.manager.get_screen('trainer')
