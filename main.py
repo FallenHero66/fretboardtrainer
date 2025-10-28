@@ -29,6 +29,14 @@ Builder.load_file("guitartrainer.kv")
 class RoundedButton(Button):
     bg_color = ListProperty([0.2, 0.6, 0.9, 1])  # default color
 
+class RoundedToggleButton(ToggleButton):
+    bg_color = ListProperty([0.2, 0.6, 0.9, 1])  # default color
+
+    def on_touch_down(self, touch):
+        # If this button is already 'down', ignore further touches
+        if self.state == "down":
+            return False
+        return super().on_touch_down(touch)
 
 CONFIG_FILE = "config.json"
 
@@ -66,16 +74,18 @@ STRINGS_7 = ["7 - low B"] + STRINGS_6  # Adding a low B string for 7-string
 def load_config():
     try:
         with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
+            config = json.load(f)
     except Exception:
-        # Defaults if no config file
-        return {
+        config = {
             "string_count": 6,
-            "notes_set": "all",  # "all" or "7"
-            "show_string": False 
+            "notes_set": "all",
+            "show_string": True,
+            "practice_mode": "random"   # NEW default
         }
-    if "show_string" not in config:
-        config["show_string"] = False
+
+    if "practice_mode" not in config:
+        config["practice_mode"] = "random"
+    return config
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:
@@ -109,23 +119,29 @@ class TrainerScreen(Screen):
         self.labelbox = LabelBox()
 
         # … your existing layout code …
-        self.display = Label(
-            text="",
-            font_size=32,
-            halign='center',
-            valign='middle',
-            color=(0,0,0,1),
-            pos_hint={'center_x': 0.5, 'y': 0.15},
-            markup=True
-        )
-        self.labelbox.add_widget(self.display)
+        #self.display = Label(
+        #    text="",
+        #    font_size=32,
+        #    halign='center',
+        #    valign='middle',
+        #    color=(0,0,0,1),
+        #    pos_hint={'center_x': 0.5, 'y': 0.15},
+        #    markup=True
+        #)
+        #self.labelbox.add_widget(self.display)
 
         # Load saved preference
         self.show_string = self.config.get("show_string", False)
 
         # Create toggle button
+        mode = self.config['practice_mode']
+        if mode == "random":
+            togglebuttontext="Hide String" if self.show_string else "Show String"
+        elif mode == "sequential":
+            togglebuttontext="Hide Cheatsheet" if self.show_string else "Show Cheatsheet"
+        
         self.toggle_string_btn = ToggleButton(
-            text="Hide String" if self.show_string else "Show String",
+            text = togglebuttontext,
             state="down" if self.show_string else "normal",
             size_hint=(None, None),
             size=(dp(150), dp(50)),
@@ -134,15 +150,50 @@ class TrainerScreen(Screen):
         self.toggle_string_btn.bind(on_press=self.toggle_string)
         self.layout.add_widget(self.toggle_string_btn)
 
-        self.layout.add_widget(self.labelbox)
 
         button_size = dp(90)
+
+        # remove later
+        # --- Practice mode selection ---
+        self.mode_labelbox = LabelBox()
+        self.mode_labelbox.display.text ="Practice mode:"
+
+        #mode_layout = BoxLayout(size_hint_y=None, height=50, spacing=10)
+        #self.random_btn = ToggleButton(text="Random", group="mode")
+        #self.seq_btn = ToggleButton(text="Sequential", group="mode")
+
+        self.mode_box = BoxLayout(
+            size_hint=(1, None),
+            height=dp(60),
+            spacing=dp(10),
+            pos_hint={'center_x': 0.5, 'y': 0.5},
+            padding=(dp(20), dp(5)),
+        )
+        self.mode_box.add_widget(self.mode_labelbox)
+
+        self.random_mode_btn = RoundedToggleButton(
+            text="Random",
+            group="mode",
+            state="down" if self.config['practice_mode'] == 'random' else "normal",
+            on_press=lambda x: self.set_mode('random'),
+        )
+        self.seq_mode_btn = RoundedToggleButton(
+            text="Sequential",
+            group="mode",
+            state="down" if self.config['practice_mode'] == 'sequential' else "normal",
+            on_press=lambda x: self.set_mode('sequential'),
+        )
+
+        self.mode_box.add_widget(self.random_mode_btn)
+        self.mode_box.add_widget(self.seq_mode_btn)
+
         buttons_layout = BoxLayout(
             size_hint=(0.9, None),
             height=dp(100),  # overall height for the button row
             spacing=dp(10),
             pos_hint={'center_x': 0.5, 'y': 0.1}
         )
+        self.layout.add_widget(self.mode_box)
         self.layout.add_widget(buttons_layout)
 
         self.start_button = RoundedButton(text="Start\nPractice",disabled=False, bg_color=(0, 0.7, 0, 1), size=(button_size, button_size), halign="center", valign="middle")
@@ -179,15 +230,6 @@ class TrainerScreen(Screen):
 
         self.update_settings_dependent_data()
 
-    #def update_bg(self, *args):
-    #    self.bg_rect.pos = self.pos
-    #    self.bg_rect.size = self.size
-#
-    #    # Calculate how many times to repeat the texture (adjust tiling scale)
-    #    repeat_x = self.width / dp(256)   # each tile roughly 256dp wide
-    #    repeat_y = self.height / dp(256)
-#
-    #    self.texture.uvsize = (repeat_x, -repeat_y)
     def update_bg(self, *args):
         self.bg_rect.pos = self.pos
 
@@ -225,7 +267,11 @@ class TrainerScreen(Screen):
 
     def toggle_string(self, instance):
         self.show_string = instance.state == "down"
-        instance.text = "Hide String" if self.show_string else "Show String"
+        mode = self.config["practice_mode"]
+        if mode == "random":
+            instance.text = "Hide String" if self.show_string else "Show String"
+        elif mode == "sequential":
+            instance.text = "Hide Cheatsheet" if self.show_string else "Show Cheatsheet"
 
         # Update config and save
         self.config["show_string"] = self.show_string
@@ -234,7 +280,20 @@ class TrainerScreen(Screen):
         # Update the displayed label
         self.update_display()
 
+    def set_mode(self, newmode):
+        if newmode == "random":
+            mode = "random" 
+            self.toggle_string_btn.text = "Show String"
+        elif newmode == "sequential":
+            mode = "sequential"
+            self.toggle_string_btn.text = "Show Cheatsheet"
+        self.config["practice_mode"] = mode
+        save_config(self.config)
+
     def start_practice(self, instance):
+        self.layout.add_widget(self.labelbox)
+        self.layout.remove_widget(self.mode_box)
+
         # Reset session data
         self.practicing = True
         self.start_time = None
@@ -265,18 +324,37 @@ class TrainerScreen(Screen):
             self.timer_event.cancel()
         self.timer_event = Clock.schedule_interval(self.update_timer, 1)
 
-    def pick_new_note(self):
-        if len(self.remaining_notes) == 0:
-            self.remaining_notes = self.notes[:]
-        print(self.remaining_notes)
+    def random_mode(self):
         self.current_string = random.choice(self.strings)
-        self.current_note = random.choice(self.remaining_notes)
-        self.remaining_notes.remove(self.current_note)
+        self.current_note = random.choice(self.notes)
+
+    def sequential_mode(self):
+        if not hasattr(self, "seq_index"):
+            self.seq_index = 0
+        self.current_string = self.strings[self.seq_index % len(self.strings)]
+        self.current_note = self.notes[self.seq_index % len(self.notes)]
+        self.seq_index += 1
+
+    def pick_new_note(self):
+        #if len(self.remaining_notes) == 0:
+        #    self.remaining_notes = self.notes[:]
+        #print(self.remaining_notes)
+        #self.current_string = random.choice(self.strings)
+        #self.current_note = random.choice(self.remaining_notes)
+        #self.remaining_notes.remove(self.current_note)
+        #self.note_count += 1
+        #self.update_display()
+        if self.config["practice_mode"] == "random":
+            self.random_mode()
+        elif self.config["practice_mode"] == "sequential":
+            # Sequential mode — simple example cycling through notes
+            self.sequential_mode()
         self.note_count += 1
         self.update_display()
 
     def next_note(self, instance):
         self.pick_new_note()
+
 
     def stop_practice(self, instance):
         if self.timer_event:
@@ -302,7 +380,8 @@ class TrainerScreen(Screen):
             f"[size={int(sp(Window.width * 0.045))}]Practice finished![/size]\n"
             f"[size={int(sp(Window.width * 0.025))}]Total time: [b]{self.format_time(total_time)}[/b][/size]\n"
             f"[size={int(sp(Window.width * 0.025))}]Notes practiced: [b]{self.note_count}[/b][/size]\n"
-            f"[size={int(sp(Window.width * 0.025))}]Average time/note: [b]{avg_time:.2f} sec[/b][/size]"
+            f"[size={int(sp(Window.width * 0.025))}]Average time/note: [b]{avg_time:.2f} sec[/b][/size]\n"
+            f"[size={int(sp(Window.width * 0.025))}]Mode: [b]{self.config['practice_mode']}[/b][/size]"
         )
         self.next_button.opacity = 0
         self.next_button.disabled = True
@@ -313,6 +392,20 @@ class TrainerScreen(Screen):
         self.settings_button.opacity = 1
         self.settings_button.disabled = False
         self.practicing = False
+        self.settings_button.text = "Home"
+        self.settings_button.unbind(on_press=self.go_to_settings)
+        self.settings_button.bind(on_press=self.go_home)
+
+    def go_home(self, instance):
+        # Reset to trainer screen (home)
+        self.manager.current = "trainer"
+
+        # Restore Settings button back to normal for next session
+        self.settings_button.text = "Settings"
+        self.settings_button.unbind(on_press=self.go_home)
+        self.settings_button.bind(on_press=self.go_to_settings)
+        self.layout.remove_widget(self.labelbox)
+        self.layout.add_widget(self.mode_box)
 
     def update_timer(self, dt):
         if self.start_time is None:
@@ -323,7 +416,7 @@ class TrainerScreen(Screen):
     def update_display(self, timer_only=False):
         if not self.practicing:
             return
-        string_lines = f"[size={int(sp(Window.width * 0.035))}]String[/size]\n[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n" if self.show_string else ""
+        string_lines = f"[size={int(sp(Window.width * 0.035))}]String[/size]\n[size={int(sp(Window.width * 0.07))}][b]{self.current_string}[/b][/size]\n" if self.show_string and self.config['practice_mode'] == "random" else ""
         
         time_str = self.format_time(self.elapsed_time)
         if timer_only:
@@ -331,12 +424,37 @@ class TrainerScreen(Screen):
             self.labelbox.display.text = f"{time_str}\n{text}"
         else:
             #self.labelbox.display.text = f"⏱ {time_str}\nString: {self.current_string}\nNote: {self.current_note}"
+            if self.config['practice_mode']=="sequential" and self.show_string:
+                if self.config['string_count'] == 6:
+                    print("printing 6 lines...")
+                    cheatsheet = (
+                        f"---------------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}-----------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['G'][self.current_note]}-----------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------{NOTES_POSITIONS['D'][self.current_note]}-----------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------{NOTES_POSITIONS['A'][self.current_note]}-----------------------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}-----------------------------------------------------------------------------------------------------------------------\n"
+                    )
+                else:
+                    print("printing 7 lines...")
+                    cheatsheet = (
+                        f"---------------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}-----------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['G'][self.current_note]}-----------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------{NOTES_POSITIONS['D'][self.current_note]}-----------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------{NOTES_POSITIONS['A'][self.current_note]}-----------------------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}-----------------------------------------------------------------------------------------------------------------------\n"
+                        f"-----------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}----------------------------------------------------------------------------------------------------------------------------\n"
+                    )
+            else:
+                cheatsheet = ""
             self.labelbox.display.text = (
                 f"{time_str}"
                 f"\n"
                 f"{string_lines}"
                 f"[size={int(sp(Window.width * 0.07))}][b]{self.current_note}[/b][/size]\n"
-                f"[size={int(sp(Window.width * 0.035))}]Note[/size]"
+                f"[size={int(sp(Window.width * 0.035))}]Note[/size]\n"
+                f"{cheatsheet}"
             )
 
     @staticmethod
@@ -370,7 +488,7 @@ class LabelBox(BoxLayout):
 
         # 🏷 Label that can grow vertically
         self.display = Label(
-            text="Press Start to begin",
+            text="",
             color=(0, 0, 0, 1),
             font_size=32,
             halign='center',
