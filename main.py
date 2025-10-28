@@ -274,7 +274,8 @@ class TrainerScreen(Screen):
         save_config(self.config)
 
     def start_practice(self, instance):
-        self.layout.add_widget(self.labelbox)
+        if self.labelbox.parent is None:
+            self.layout.add_widget(self.labelbox)
         self.layout.remove_widget(self.mode_box)
 
         # Reset session data
@@ -391,26 +392,25 @@ class TrainerScreen(Screen):
         else:
             #self.labelbox.display.text = f"⏱ {time_str}\nString: {self.current_string}\nNote: {self.current_note}"
             if self.config['practice_mode']=="sequential" and self.show_string:
+                tabsize = int(sp(Window.width * 0.03))
                 if self.config['string_count'] == 6:
-                    print("printing 6 lines...")
                     cheatsheet = (
-                        f"---------------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}-----------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['G'][self.current_note]}-----------------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------{NOTES_POSITIONS['D'][self.current_note]}-----------------------------------------------------------------------------------------------------------\n"
-                        f"---------------------------------------------------------------------------------------------{NOTES_POSITIONS['A'][self.current_note]}-----------------------------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}-----------------------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['E'][self.current_note]}[/size]------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['B'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['G'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['D'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['A'][self.current_note]}[/size]------------------------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['E'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------------------------\n"
                     )
                 else:
-                    print("printing 7 lines...")
                     cheatsheet = (
-                        f"---------------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}-----------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------------{NOTES_POSITIONS['G'][self.current_note]}-----------------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------------------{NOTES_POSITIONS['D'][self.current_note]}-----------------------------------------------------------------------------------------------------------\n"
-                        f"---------------------------------------------------------------------------------------------{NOTES_POSITIONS['A'][self.current_note]}-----------------------------------------------------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------------------------{NOTES_POSITIONS['E'][self.current_note]}-----------------------------------------------------------------------------------------------------------------------\n"
-                        f"-----------------------------------------------------------------------------------{NOTES_POSITIONS['B'][self.current_note]}----------------------------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['E'][self.current_note]}[/size]------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['B'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['G'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['D'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------------\n"
+                        f"---------------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['A'][self.current_note]}[/size]------------------------------------------------------------------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['E'][self.current_note]}[/size]-----------------------------------------------------------------------------------------------------------------------\n"
+                        f"-----------------------------------------------------------------------------------[size={tabsize}]{NOTES_POSITIONS['B'][self.current_note]}[/size]----------------------------------------------------------------------------------------------------------------------------\n"
                     )
             else:
                 cheatsheet = ""
@@ -436,47 +436,77 @@ class TrainerScreen(Screen):
 
 
 class LabelBox(BoxLayout):
+    #def __init__(self, **kwargs):
+    #    super().__init__(**kwargs)
+    #    self.orientation = 'vertical'
+    #    self.padding = 10
+    #    self.spacing = 5
+    #    self.size_hint = (0.9, None)
+    #    self.pos_hint = {'center_x': 0.5, 'center_y': 0.75}
+#
+    #    # 🎨 Semi-transparent rounded background
+    #    with self.canvas.before:
+    #        Color(1, 1, 1, 0.7)
+    #        self.bg_rect = Rectangle(radius=[15], pos=self.pos, size=self.size)
+#
+    #    # 🧩 Keep background in sync with layout
+    #    self.bind(pos=self._update_bg, size=self._update_bg)
+#
+    #    # 🏷 Label that can grow vertically
+    #    self.display = Label(
+    #        text="",
+    #        color=(0, 0, 0, 1),
+    #        font_size=32,
+    #        halign='center',
+    #        valign='middle',
+    #        size_hint_y=None,
+    #        markup=True
+    #    )
+#
+    #    # Bind text and size changes to dynamically resize the box
+    #    self.display.bind(texture_size=self._update_label_height)
+    #    self.add_widget(self.display)
+#
+    #    # Initialize height properly
+    #    self._update_label_height()
+
+    #def _update_label_height(self, *args):
+    #    # Fit LabelBox height and width to content + padding
+    #    label = self.display
+    #    pad = self.padding[0] if isinstance(self.padding, (list, tuple)) else self.padding
+    #    self.width = min(Window.width * 0.9, label.texture_size[0] + pad * 2)
+    #    self.height = label.texture_size[1] + pad * 2
+    #    self._update_bg()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        self.padding = 10
-        self.spacing = 5
-        self.size_hint = (0.9, None)
-        self.pos_hint = {'center_x': 0.5, 'center_y': 0.75}
-
-        # 🎨 Semi-transparent rounded background
-        with self.canvas.before:
-            Color(1, 1, 1, 0.7)
-            self.bg_rect = Rectangle(radius=[15], pos=self.pos, size=self.size)
-
-        # 🧩 Keep background in sync with layout
-        self.bind(pos=self._update_bg, size=self._update_bg)
-
-        # 🏷 Label that can grow vertically
+        self.size_hint = (None, None)  # we'll control size manually
+        self.padding = dp(15)
+        self.spacing = dp(5)
+        self.pos_hint = {'center_x': 0.5, 'top': 0.95}  # 5% gap from top
         self.display = Label(
-            text="",
-            color=(0, 0, 0, 1),
-            font_size=32,
-            halign='center',
-            valign='middle',
-            size_hint_y=None,
-            markup=True
+            text="Ready to start",
+            halign="center",
+            valign="middle",
+            markup=True,
+            color=(0, 0, 0, 1)
         )
-
-        # Bind text and size changes to dynamically resize the box
         self.display.bind(texture_size=self._update_label_height)
         self.add_widget(self.display)
 
-        # Initialize height properly
-        self._update_label_height()
+        with self.canvas.before:
+            Color(1, 1, 1, 0.7)  # semi-transparent white
+            self.bg_rect = Rectangle(radius=[dp(15)])
+
+        self.bind(pos=self._update_bg, size=self._update_bg)
 
     def _update_label_height(self, *args):
-        """Resize Label and Box height based on label content."""
-        # Give label enough height for its text
-        self.display.height = self.display.texture_size[1] + 20  # padding
-        # Adjust total box height accordingly
-        pad = self.padding[1] if isinstance(self.padding, (list, tuple)) else self.padding
-        self.height = self.display.height + pad * 2
+        # Fit LabelBox height and width to content + padding
+        label = self.display
+        pad = self.padding[0] if isinstance(self.padding, (list, tuple)) else self.padding
+        self.width = min(Window.width * 0.9, label.texture_size[0] + pad * 2)
+        self.height = label.texture_size[1] + pad * 2
         self._update_bg()
 
     def _update_bg(self, *args):
@@ -579,5 +609,5 @@ class GuitarTrainerApp(App):
 
 
 if __name__ == '__main__':
-    #Window.size = (400, 800)
+    #Window.size = (498, 1080)
     GuitarTrainerApp().run()
