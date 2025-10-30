@@ -62,6 +62,7 @@ android.debug_artifact = apk
 # (list) Patterns to exclude
 exclude_patterns = tests/*, test/*, __pycache__/*
 
+android.wakelock = True
 
 [buildozer]
 # (int) Log level (0 = errors only, 1 = info, 2 = debug)
