@@ -10,19 +10,17 @@ from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.uix.switch import Switch
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.lang import Builder
-#from kivy.factory import Factory
-from kivy.uix.screenmanager import Screen
 from kivy.graphics import Rectangle, Color
 from kivy.core.image import Image as CoreImage
-from kivy.uix.button import Button
 from kivy.properties import ListProperty
 from kivy.metrics import dp,sp
-from kivy.uix.anchorlayout import AnchorLayout
+from kivy.core.audio import SoundLoader
+from kivy.uix.popup import Popup
+from kivy.uix.slider import Slider
 
 Builder.load_file("guitartrainer.kv")
 
@@ -80,11 +78,19 @@ def load_config():
             "string_count": 6,
             "notes_set": "all",
             "show_string": True,
-            "practice_mode": "random"   # NEW default
+            "practice_mode": "random",
+            "metronome_enabled": False,
+            "metronome_bpm": 20,
+            "autoplay": False
         }
 
     if "practice_mode" not in config:
         config["practice_mode"] = "random"
+    if "metronone_enabled" not in config:
+        config["metronome_enabled"] = False
+        config["metronome_bpm"] = 20
+    if "autoplay" not in config:
+        config["autoplay"] = False
     return config
 
 def save_config(config):
@@ -124,19 +130,43 @@ class TrainerScreen(Screen):
         # Create toggle button
         mode = self.config['practice_mode']
         if mode == "random":
-            togglebuttontext="Hide String" if self.show_string else "Show String"
+            toggle_stringbutton_text="Hide String" if self.show_string else "Show String"
         elif mode == "sequential":
-            togglebuttontext="Hide Cheatsheet" if self.show_string else "Show Cheatsheet"
+            toggle_stringbutton_text="Hide Cheatsheet" if self.show_string else "Show\nCheatsheet"
         
         self.toggle_string_btn = ToggleButton(
-            text = togglebuttontext,
+            text = toggle_stringbutton_text,
             state="down" if self.show_string else "normal",
             size_hint=(None, None),
+            halign="center",
+            valign="middle",
             size=(dp(150), dp(50)),
-            pos_hint={'center_x': 0.5, 'center_y': 0.3}
+            
         )
         self.toggle_string_btn.bind(on_press=self.toggle_string)
-        self.layout.add_widget(self.toggle_string_btn)
+        self.metronome_btn = Button(
+            text=f"Metronome: OFF\n({self.config['metronome_bpm']} BPM)",
+            size_hint=(None, None),
+            halign="center",
+            valign="middle",
+            size=(dp(150), dp(50)),
+            #size=(dp(200), dp(60))
+        )
+        self.metronome_btn.text_size = self.metronome_btn.size
+        self.metronome_btn.bind(size=lambda instance, _: setattr(instance, 'text_size', instance.size))
+        self.metronome_btn.bind(on_press=self.toggle_metronome)
+        button_size = dp(90)
+        self.second_button_row = BoxLayout(
+            pos_hint={'center_x': 0.5, 'center_y': 0.3},
+            size_hint=(1, None),
+            height=button_size,  # overall height for the button row
+            spacing=dp(10)
+        )
+        self.second_button_row.add_widget(Widget())
+        self.second_button_row.add_widget(self.toggle_string_btn)
+        self.second_button_row.add_widget(self.metronome_btn)
+        self.second_button_row.add_widget(Widget())
+        self.layout.add_widget(self.second_button_row)
 
 
         button_size = dp(90)
@@ -254,7 +284,7 @@ class TrainerScreen(Screen):
         if mode == "random":
             instance.text = "Hide String" if self.show_string else "Show String"
         elif mode == "sequential":
-            instance.text = "Hide Cheatsheet" if self.show_string else "Show Cheatsheet"
+            instance.text = "Hide Cheatsheet" if self.show_string else "Show\nCheatsheet"
 
         # Update config and save
         self.config["show_string"] = self.show_string
@@ -269,7 +299,8 @@ class TrainerScreen(Screen):
             self.toggle_string_btn.text = "Show String"
         elif newmode == "sequential":
             mode = "sequential"
-            self.toggle_string_btn.text = "Show Cheatsheet"
+            self.toggle_string_btn.text = "Show\nCheatsheet"
+            self.config["autoplay_enabled"] =  False
         self.config["practice_mode"] = mode
         save_config(self.config)
 
@@ -335,6 +366,90 @@ class TrainerScreen(Screen):
     def next_note(self, instance):
         self.pick_new_note()
 
+    def toggle_metronome(self, instance):
+        if self.config.get("metronome_enabled", False):
+            # Stop metronome
+            self.stop_metronome()
+        else:
+            # Open popup to set BPM before starting
+            self.show_metronome_popup()
+
+    def show_metronome_popup(self):
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+
+        label = Label(text=f"BPM: {self.config['metronome_bpm']}", font_size=sp(18))
+        slider = Slider(min=20, max=240, value=self.config['metronome_bpm'], step=1)
+        autoplay_button = ToggleButton(
+            text="Autoplay: ON" if self.config.get("autoplay_enabled", False) else "Autoplay: OFF",
+            state="down" if self.config.get("autoplay_enabled", False) else "normal",
+            size_hint_y=None,
+            height=dp(50)
+        )
+        
+        autoplay_button.bind(on_press=self.toggle_autoplay)
+        layout.add_widget(label)
+        if self.config['practice_mode'] == 'random':
+            layout.add_widget(autoplay_button)
+        layout.add_widget(slider)
+
+        def on_value_change(instance, value):
+            label.text = f"BPM: {int(value)}"
+        slider.bind(value=on_value_change)
+
+        btn_layout = BoxLayout(size_hint_y=None, height=dp(50), spacing=10)
+        start_btn = RoundedButton(text="Start", bg_color=(0, 0.7, 0, 1))
+        cancel_btn = RoundedButton(text="Cancel", bg_color=(0.8, 0, 0, 1))
+        btn_layout.add_widget(start_btn)
+        btn_layout.add_widget(cancel_btn)
+        layout.add_widget(btn_layout)
+
+        popup = Popup(title="Set Metronome BPM", content=layout, size_hint=(0.8, 0.4))
+
+        def start_press(_):
+            bpm = int(slider.value)
+            self.config["metronome_bpm"] = bpm
+            self.config["metronome_enabled"] = True
+            save_config(self.config)
+            popup.dismiss()
+            self.start_metronome()
+
+        def cancel_press(_):
+            popup.dismiss()
+
+        start_btn.bind(on_press=start_press)
+        cancel_btn.bind(on_press=cancel_press)
+        popup.open()
+
+    def start_metronome(self):
+        bpm = self.config["metronome_bpm"]
+        self.metronome_interval = 60.0 / bpm
+
+        # Load or reuse tick sound
+        if not hasattr(self, "tick_sound"):
+            self.tick_sound = SoundLoader.load("tick.wav")  # you’ll need to include a short tick sound file
+
+        self.metronome_event = Clock.schedule_interval(self.play_tick, self.metronome_interval)
+        self.metronome_btn.text = f"Metronome: ON\n({bpm} BPM)"
+
+    def stop_metronome(self):
+        if hasattr(self, "metronome_event") and self.metronome_event:
+            self.metronome_event.cancel()
+        self.config["metronome_enabled"] = False
+        save_config(self.config)
+        self.metronome_btn.text = f"Metronome: OFF\n({self.config['metronome_bpm']} BPM)"
+
+    def play_tick(self, dt):
+        if hasattr(self, "tick_sound") and self.tick_sound:
+            self.tick_sound.stop()  # restart for sharp attack
+            self.tick_sound.play()
+            if self.config.get("autoplay_enabled", True): #and self.config['practice_mode'] == "random":
+                self.next_note(None)
+
+    def toggle_autoplay(self, instance):
+        self.config["autoplay_enabled"] = not self.config.get("autoplay_enabled", False)
+        instance.text = "Autoplay: ON" if self.config["autoplay_enabled"] else "Autoplay: OFF"
+        instance.state = "down" if self.config["autoplay_enabled"] else "normal"
+        save_config(self.config)
 
     def stop_practice(self, instance):
         if self.timer_event:
@@ -364,6 +479,7 @@ class TrainerScreen(Screen):
         self.settings_button.disabled = False
         self.practicing = False
         self.settings_button.text = "Home"
+        self.stop_metronome()
         self.settings_button.unbind(on_press=self.go_to_settings)
         self.settings_button.bind(on_press=self.go_home)
 
@@ -570,5 +686,5 @@ class GuitarTrainerApp(App):
 
 
 if __name__ == '__main__':
-    #Window.size = (498, 1080)
+    #Window.size = (1440, 3120)
     GuitarTrainerApp().run()

@@ -12,7 +12,7 @@ package.domain = org.fretboardtrainer
 source.dir = .
 
 # (list) Include these file types in the APK
-source.include_exts = py, kv, png, jpg, json
+source.include_exts = py, kv, png, jpg, json, wav
 
 # (optional) include additional folders (if you add assets later)
 # source.include_patterns = assets/*, images/*, *.kv, *.json
